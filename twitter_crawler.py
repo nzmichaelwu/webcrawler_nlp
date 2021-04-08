@@ -79,16 +79,5 @@ def twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_d
 
             df = df.append(temp_df)
 
+    driver.quit()
     return df
-
-
-base_url = u'https://twitter.com/search?q='
-query = u'%40commbank'
-url = [base_url + query]
-
-scroll_down_num = 10
-
-# the element we are obtaining from the webpage
-post_element_xpath = '//div/div/article/div/div'
-
-test = twitter_scraper(url, scroll_down_num, post_element_xpath, '2021-01-01', '2021-04-01', 2)
