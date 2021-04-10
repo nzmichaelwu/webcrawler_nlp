@@ -46,7 +46,7 @@ def list_of_dates(start_date, end_date, num_days):
     return tup_list
 
 
-def twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_date, days_between):
+def twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_date, days_between, filename):
     # setting up chrome driver
     driver = webdriver.Chrome()
     driver.set_page_load_timeout(100)
@@ -80,4 +80,5 @@ def twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_d
             df = df.append(temp_df)
 
     driver.quit()
-    return df
+    filepath = filename + '.csv'
+    df.to_csv(filepath)

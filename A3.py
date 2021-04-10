@@ -1,6 +1,7 @@
 # imports
 from twitter_crawler import twitter_scraper
 import pandas as pd
+import os
 
 # initialise variables
 base_url = u'https://twitter.com/search?q='
@@ -16,13 +17,22 @@ scroll_down_num = 10
 # the element we are obtaining from the webpage
 post_element_xpath = '//div/div/article/div/div'
 
-start_date = '2021-02-01'
-end_date = '2021-04-01'
+start_date = '2020-01-01'
+end_date = '2021-01-01'
 
 days_between = 2  # search every 2 days between the date range
 
-# run scraper to get tweets
-df = twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_date, days_between)
+# load tweets
+if os.path.isfile('twitter_response.csv'):
+    df = pd.read_csv('twitter_response.csv').reset_index(drop=True)
+else:
+    # run scraper to get tweets
+    twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_date,
+                    days_between, "twitter_response.csv")
+    df = pd.read_csv('twitter_response.csv').reset_index(drop=True)
+
+# drop unwanted columns first
+df = df.drop(columns=['Unnamed: 0'])
 
 
 # function to extract text from tweets
@@ -50,4 +60,4 @@ def extract_text(text):
     except:
         return pd.Series(['', '', '', '', '', ''])
 
-df[['username', 'handle', 'date', 'reply_to', 'reply_to_handle', 'text']] = df['all_text'].apply(extract_text)
+#df[['username', 'handle', 'date', 'reply_to', 'reply_to_handle', 'text']] = df['all_text'].apply(extract_text)
