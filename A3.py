@@ -18,11 +18,12 @@ pd.options.display.max_colwidth = 200
 # initialise variables
 base_url = u'https://twitter.com/search?q='
 cba = u'%40commbank'
-westpac = u'%40westpac'
-anz = u'%40anz'
-nab = u'%40NAB'
+#westpac = u'%40westpac'
+#anz = u'%40anz'
+#nab = u'%40NAB'
 
-urls = [base_url + cba, base_url + westpac, base_url + anz, base_url + nab]
+#urls = [base_url + cba, base_url + westpac, base_url + anz, base_url + nab]
+urls = [base_url + cba]
 scroll_down_num = 10
 
 stop_words = set(stopwords.words('english'))
@@ -30,10 +31,10 @@ stop_words = set(stopwords.words('english'))
 # the element we are obtaining from the webpage
 post_element_xpath = '//div/div/article/div/div'
 
-start_date = '2020-01-01'
-end_date = '2021-01-01'
+start_date = '2020-04-01'
+end_date = '2021-04-09'
 
-days_between = 2  # search every 2 days between the date range
+days_between = 1  # search every 2 days between the date range
 
 # load tweets
 if os.path.isfile('twitter_response.csv'):
@@ -41,7 +42,7 @@ if os.path.isfile('twitter_response.csv'):
 else:
     # run scraper to get tweets
     twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_date,
-                    days_between, "twitter_response.csv")
+                    days_between, "twitter_response")
     df_tweets = pd.read_csv('twitter_response.csv').reset_index(drop=True)
 
 # drop unwanted columns first
@@ -125,7 +126,9 @@ def getTextAnalysis(a):
     else:
         return "Positive"
 
-df_temp['subjectivity'] = df_temp['tweet_cleaned'].apply(getTextSubjectivity)
-df_temp['polarity'] = df_temp['tweet_cleaned'].apply(getTextPolarity)
+df_final = df_temp.copy()
 
-df_temp['score'] = df_temp['polarity'].apply(getTextAnalysis)
+df_final['subjectivity'] = df_final['tweet_cleaned'].apply(getTextSubjectivity)
+df_final['polarity'] = df_final['tweet_cleaned'].apply(getTextPolarity)
+
+df_final['score'] = df_final['polarity'].apply(getTextAnalysis)
