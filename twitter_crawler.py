@@ -63,11 +63,11 @@ def twitter_scraper(urls, scroll_down_num, post_element_xpath, start_date, end_d
                   '%20since%3A' + str(day_tuple[0]) + '&src=typed_query'
 
             driver.get(url)
-            sleep_for(5, 10)
+            sleep_for(10, 15)
 
             for i in range(0, scroll_down_num):
                 driver.find_element_by_xpath('//body').send_keys(Keys.END)
-                sleep_for(2, 4)
+                sleep_for(4, 7)
 
             # get a list of each post
             post_list = driver.find_elements_by_xpath(post_element_xpath)

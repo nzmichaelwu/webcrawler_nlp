@@ -3,13 +3,15 @@ from twitter_crawler import twitter_scraper
 import pandas as pd
 import os
 import re
+import matplotlib.pyplot as plt
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from textblob import TextBlob
-
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 # set options
 pd.set_option('mode.chained_assignment', None)
@@ -18,13 +20,13 @@ pd.options.display.max_colwidth = 200
 # initialise variables
 base_url = u'https://twitter.com/search?q='
 cba = u'%40commbank'
-#westpac = u'%40westpac'
-#anz = u'%40anz'
-#nab = u'%40NAB'
+# westpac = u'%40westpac'
+# anz = u'%40anz'
+# nab = u'%40NAB'
 
-#urls = [base_url + cba, base_url + westpac, base_url + anz, base_url + nab]
+# urls = [base_url + cba, base_url + westpac, base_url + anz, base_url + nab]
 urls = [base_url + cba]
-scroll_down_num = 10
+scroll_down_num = 15
 
 stop_words = set(stopwords.words('english'))
 
@@ -77,9 +79,15 @@ def extract_text(text):
 
 
 df_temp = pd.DataFrame()
-
 df_temp[['username', 'handle', 'date', 'reply_to', 'reply_to_handle', 'text']] = df_tweets['all_text'].apply(
     extract_text)
+
+# quick insights on the tweets scraped
+num_tweets_scraped = len(df_temp)
+
+df_temp['word_length'] = [len(tweet) for tweet in df_temp['text']]
+x = df_temp['word_length']
+plt.hist(x)
 
 
 # function to pre-process tweets
@@ -102,33 +110,72 @@ def preprocess_tweet_text(tweet):
     tweet_lemmed = ' '.join(tweet_words)
     return tweet_lemmed
 
+
 df_temp['tweet_cleaned'] = df_temp['text'].apply(preprocess_tweet_text)
 
-""""
+# NLP task 1 - sentiment analysis
 sid = SentimentIntensityAnalyzer()
 
 sentiment = df_temp.apply(lambda r: sid.polarity_scores(r['tweet_cleaned']), axis=1)
 df_sent = pd.DataFrame(list(sentiment))
-df_final = df_temp.join(df_sent)
-"""
+df_with_sentiment = df_temp.join(df_sent)
 
-def getTextSubjectivity(text):
-    return TextBlob(text).sentiment.subjectivity
 
-def getTextPolarity(text):
-    return TextBlob(text).sentiment.polarity
-
-def getTextAnalysis(a):
-    if a < 0:
+def get_sentiment(compound):
+    if compound < 0:
         return "Negative"
-    elif a == 0:
+    elif compound == 0:
         return "Neutral"
     else:
         return "Positive"
 
-df_final = df_temp.copy()
 
-df_final['subjectivity'] = df_final['tweet_cleaned'].apply(getTextSubjectivity)
-df_final['polarity'] = df_final['tweet_cleaned'].apply(getTextPolarity)
+df_with_sentiment['sentiment'] = df_with_sentiment['compound'].apply(get_sentiment)
 
-df_final['score'] = df_final['polarity'].apply(getTextAnalysis)
+# NLP task 2 - information extraction (keyword extraction)
+cv = CountVectorizer(max_df=0.7)  # ignore words that have appeared in 70% of the documents, as they are unimportant
+word_count_vector = cv.fit(df_with_sentiment['tweet_cleaned'])
+feature_names = cv.get_feature_names()  # get a full list of key words
+
+tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+tfidf_transformer.fit(word_count_vector)
+
+
+# function to sort the COOrdinate sparse matrix
+def sort_coo_matrix(coo_matrix):
+    tuples = zip(coo_matrix.col, coo_matrix.data)
+    return sorted(tuples, key=lambda x: (x[1], x[0]), reverse=True)
+
+
+# function to extract top n words from vector
+def extract_topn_from_vector(feature_names, sorted_items, top_n):
+    sorted_items = sorted_items[:top_n]
+
+    score_values = []
+    feature_values = []
+
+    for index, score in sorted_items:
+        score_values.append(round(score, 3))
+        feature_values.append(feature_names[index])
+
+    results = {}
+
+    for idx in range(len(feature_values)):
+        results[feature_values[idx]] = score_values[idx]
+
+    return results
+
+
+def generate_tfidf(text):
+    tf_idf_vector = tfidf_transformer.transform(cv.transform(text))
+    sorted_items = sort_coo_matrix(tf_idf_vector.tocoo())
+    keywords = extract_topn_from_vector(feature_names, sorted_items, 5)  # get top 5 keywords
+
+    print(keywords)
+
+
+test = df_with_sentiment['tweet_cleaned'].apply(generate_tfidf)
+
+
+vectorizer = TfidfVectorizer()
+tweet_vectors = vectorizer.fit_transform(df_with_sentiment['tweet_cleaned'])
